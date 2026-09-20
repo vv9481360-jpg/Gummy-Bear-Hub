@@ -25,7 +25,7 @@ local CONFIG = {
     CardDark = Color3.fromRGB(32, 24, 52),
     TextMain = Color3.fromRGB(245, 240, 255),
     TextSub = Color3.fromRGB(170, 160, 200),
-    Keybind = Enum.KeyCode.RightShift,
+    Keybind = Enum.KeyCode.BackSlash,
 }
 
 local BLOXSTRIKE_ID = 114234929420007
