@@ -1,7 +1,6 @@
 --=============================================================
---  GUMMY BEAR HUB v4.0 — BloxStrike Edition
---  Неоновый стиль + автоопределение игры
---  Place ID BloxStrike: 114234929420007
+--  GUMMY BEAR HUB v5.0 — Clean Edition
+--  Неоновый стиль + все функции + автоопределение игры
 --=============================================================
 
 --=============================================================
@@ -20,7 +19,7 @@ end
 --=============================================================
 local CONFIG = {
     Title = "Gummy Bear Hub",
-    Version = "v4.0",
+    Version = "v5.0",
     NeonPink   = Color3.fromRGB(255, 40, 160),
     NeonPurple = Color3.fromRGB(150, 70, 255),
     NeonBlue   = Color3.fromRGB(60, 180, 255),
@@ -31,15 +30,14 @@ local CONFIG = {
 }
 
 --=============================================================
---  3. БАЗА ИГР (BLOXSTRIKE УЖЕ ВНУТРИ!)
+--  3. БАЗА ИГР (ДОБАВЛЯЙ СВОИ)
 --=============================================================
 local GAMES = {
-    [114234929420007] = { 
-        name = "BloxStrike", 
-        url  = "https://raw.githubusercontent.com/Nickk-GG/BloxStrike-NickHub-New-Gen/refs/heads/main/sc.lua"
-    },
-    -- Добавляй другие игры по аналогии:
-    -- [PLACE_ID] = { name = "Название", url = "ссылка" },
+    -- Примеры (раскомментируй и замени ссылки):
+    -- [2753915549] = { name = "Blox Fruits",   url = "https://..." },
+    -- [4924922222] = { name = "Brookhaven RP", url = "https://..." },
+    -- [6516141723] = { name = "Doors",         url = "https://..." },
+    -- [2788229376] = { name = "Da Hood",       url = "https://..." },
 }
 
 --=============================================================
@@ -118,7 +116,6 @@ new("Frame", {
     Position = UDim2.new(0, 0, 1, -16),
 })
 
--- Неоновая линия
 new("Frame", {
     Parent = TopBar,
     BackgroundColor3 = CONFIG.NeonPink,
@@ -127,7 +124,6 @@ new("Frame", {
     Position = UDim2.new(0, 0, 1, -2),
 })
 
--- Иконка мишки
 local icon = new("Frame", {
     Parent = TopBar,
     BackgroundColor3 = CONFIG.NeonPink,
@@ -145,7 +141,6 @@ new("TextLabel", {
     Size = UDim2.new(1, 0, 1, 0),
 })
 
--- Заголовок
 new("TextLabel", {
     Parent = TopBar,
     BackgroundTransparency = 1,
@@ -158,7 +153,6 @@ new("TextLabel", {
     Position = UDim2.new(0, 54, 0, 0),
 })
 
--- Кнопки
 local function topBtn(txt, xOff, color)
     local b = new("TextButton", {
         Parent = TopBar,
@@ -583,6 +577,12 @@ makeButton(playerPage, "♻️ Перереспавнить", function()
     if hum then hum.Health = 0 end
 end)
 
+makeButton(playerPage, "🩹 Восстановить HP", function()
+    local char = LP.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then hum.Health = hum.MaxHealth end
+end)
+
 -- === ТЕЛЕПОРТ ===
 local tpPage = createTab("Телепорт", "🌀")
 
@@ -595,6 +595,11 @@ end
 makeButton(tpPage, "⬆️ Вверх на 100", function()
     local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
     if hrp then tpTo(hrp.Position + Vector3.new(0, 100, 0)) end
+end)
+
+makeButton(tpPage, "⬇️ Вниз на 100", function()
+    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then tpTo(hrp.Position - Vector3.new(0, 100, 0)) end
 end)
 
 makeButton(tpPage, "🎯 К случайному игроку", function()
@@ -637,36 +642,50 @@ makeToggle(visualPage, "Убрать туман", false, function(state)
     Lighting.FogEnd = state and 1e6 or 100000
 end)
 
--- === BLOXSTRIKE (появляется только в BloxStrike) ===
-local BLOXSTRIKE_ID = 114234929420007
-if game.PlaceId == BLOXSTRIKE_ID then
-    local bs = createTab("BloxStrike", "🔫")
-    makeLabel(bs, "🎯 Обнаружен BloxStrike", false)
-    makeLabel(bs, "Выбери скрипт для загрузки:", true)
+-- ESP игроков
+local espFolder = new("Folder", { Parent = ScreenGui, Name = "ESP" })
+local espAdded
 
-    makeButton(bs, "🎯 NickHub (Aimbot + ESP + Skins)", function()
-        local ok, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/Nickk-GG/BloxStrike-NickHub-New-Gen/refs/heads/main/sc.lua"))()
-        end)
-        if not ok then warn("[GB] NickHub error: " .. tostring(err)) end
-    end)
+makeToggle(visualPage, "Player ESP", false, function(state)
+    for _, v in pairs(espFolder:GetChildren()) do v:Destroy() end
+    if not state then
+        if espAdded then espAdded:Disconnect(); espAdded = nil end
+        return
+    end
 
-    makeButton(bs, "🔫 No Recoil (без ключа)", function()
-        local ok, err = pcall(function()
-            loadstring(game:HttpGet("https://xenoscripts.com/script/bloxstrike-no-recoil-script-keyless"))()
-        end)
-        if not ok then warn("[GB] No Recoil error: " .. tostring(err)) end
-    end)
+    local function addESP(plr)
+        if plr == LP then return end
+        local function setup(char)
+            local head = char:WaitForChild("Head", 5)
+            if not head then return end
+            local bb = new("BillboardGui", {
+                Parent = espFolder,
+                Adornee = head,
+                Size = UDim2.new(0, 120, 0, 32),
+                StudsOffset = Vector3.new(0, 3.2, 0),
+                AlwaysOnTop = true,
+            })
+            new("TextLabel", {
+                Parent = bb,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Text = plr.Name,
+                Font = Enum.Font.GothamBold,
+                TextSize = 14,
+                TextColor3 = CONFIG.NeonPink,
+                TextStrokeTransparency = 0.3,
+            })
+            char.AncestryChanged:Connect(function()
+                if not char:IsDescendantOf(game) then bb:Destroy() end
+            end)
+        end
+        if plr.Character then setup(plr.Character) end
+        plr.CharacterAdded:Connect(setup)
+    end
 
-    makeButton(bs, "📦 Spiem Hub (универсальный)", function()
-        local ok, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/perfectusmim1/spiemhub/refs/heads/main/loader"))()
-        end)
-        if not ok then warn("[GB] Spiem Hub error: " .. tostring(err)) end
-    end)
-
-    makeLabel(bs, "Запускай только ОДИН скрипт!", true)
-end
+    for _, p in pairs(Players:GetPlayers()) do addESP(p) end
+    espAdded = Players.PlayerAdded:Connect(addESP)
+end)
 
 --=============================================================
 --  14. ХОТКЕЙ
@@ -685,4 +704,3 @@ Main.Size = UDim2.new(0, 0, 0, 0)
 tween(Main, 0.35, { Size = UDim2.new(0, 560, 0, 380) })
 
 print("[Gummy Bear Hub] Загружено! Place ID: " .. tostring(game.PlaceId))
-print("[Gummy Bear Hub] Обнаружена игра: " .. (GAMES[game.PlaceId] and GAMES[game.PlaceId].name or "неизвестная"))
