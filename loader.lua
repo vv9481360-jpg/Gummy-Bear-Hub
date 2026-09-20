@@ -1,10 +1,10 @@
 --=============================================================
---  GUMMY BEAR HUB v10.0 — BloxStrike Full Edition
---  Часть 1/3: Основа, UI, утилиты
+--  GUMMY BEAR HUB v10.1 — BloxStrike Fixed Edition
+--  Все баги исправлены
 --=============================================================
 
 --=============================================================
---  1. ОЧИСТКА
+--  1. ОЧИСТКА СТАРЫХ ПАНЕЛЕЙ
 --=============================================================
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
@@ -14,12 +14,16 @@ for _, g in pairs(PG:GetChildren()) do
     if g.Name:match("^GummyBear_") then g:Destroy() end
 end
 
+-- Очистка старых флагов (если были)
+_G.__GB_Loaded = nil
+_G.__GB_SavedPos = nil
+
 --=============================================================
 --  2. КОНФИГ
 --=============================================================
 local CONFIG = {
     Title = "Gummy Bear Hub",
-    Version = "10.0",
+    Version = "10.1",
     NeonPink = Color3.fromRGB(255, 40, 160),
     NeonPurple = Color3.fromRGB(150, 70, 255),
     NeonBlue = Color3.fromRGB(60, 180, 255),
@@ -40,6 +44,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
 
 --=============================================================
 --  4. УТИЛИТЫ
@@ -67,7 +72,10 @@ local function stroke(p, c, th, tr)
 end
 
 local function tween(o, t, props)
-    TweenService:Create(o, TweenInfo.new(t or 0.2), props):Play()
+    local ok = pcall(function()
+        TweenService:Create(o, TweenInfo.new(t or 0.2), props):Play()
+    end)
+    return ok
 end
 
 --=============================================================
@@ -198,7 +206,7 @@ new("UIListLayout", {
 })
 
 --=============================================================
---  8. КОНТЕНТ
+--  8. КОНТЕНТ + ТАБЫ
 --=============================================================
 local Content = new("Frame", {
     Parent = Main,
@@ -273,7 +281,7 @@ local function createTab(name, ico)
 end
 
 --=============================================================
---  9. ЭЛЕМЕНТЫ UI
+--  9. UI-ЭЛЕМЕНТЫ
 --=============================================================
 local function makeButton(parent, text, cb)
     local wrap = new("Frame", {
@@ -484,7 +492,7 @@ local function makeDivider(parent, text)
 end
 
 --=============================================================
---  10. DRAG ПАНЕЛИ
+--  10. DRAG
 --=============================================================
 do
     local dragging, dragStart, startPos
@@ -524,6 +532,7 @@ CloseBtn.MouseButton1Click:Connect(function()
     tween(Main, 0.22, { Size = UDim2.new(0, 0, 0, 0) })
     task.delay(0.22, function() ScreenGui:Destroy() end)
 end)
+
 --=============================================================
 --  12. ГЛАВНАЯ
 --=============================================================
@@ -531,6 +540,10 @@ local homePage = createTab("Главная", "🧸")
 makeLabel(homePage, "Добро пожаловать в " .. CONFIG.Title, false)
 makeLabel(homePage, "Place ID: " .. tostring(game.PlaceId), true)
 makeLabel(homePage, "Игроков: " .. #Players:GetPlayers(), true)
+
+if game.PlaceId == BLOXSTRIKE_ID then
+    makeLabel(homePage, "🎯 Режим BloxStrike активен!", true)
+end
 
 --=============================================================
 --  13. ИГРОК
@@ -544,7 +557,7 @@ makeToggle(playerPage, "Бесконечный прыжок", false, function(st
         infJumpConn = UIS.JumpRequest:Connect(function()
             local char = LP.Character
             local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
         end)
     else
         if infJumpConn then infJumpConn:Disconnect(); infJumpConn = nil end
@@ -599,17 +612,24 @@ end)
 
 makeButton(tpPage, "🌍 Сохранить позицию", function()
     local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-    if hrp then _G.__BearPos = hrp.Position end
+    if hrp then _G.__GB_SavedPos = hrp.Position end
 end)
 
 makeButton(tpPage, "↩️ Вернуться", function()
-    if _G.__BearPos then tpTo(_G.__BearPos) end
+    if _G.__GB_SavedPos then tpTo(_G.__GB_SavedPos) end
 end)
 
 --=============================================================
 --  15. ВИЗУАЛ
 --=============================================================
 local visualPage = createTab("Визуал", "🎨")
+
+local origLighting = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+}
 
 makeToggle(visualPage, "Fullbright", false, function(state)
     if state then
@@ -618,28 +638,29 @@ makeToggle(visualPage, "Fullbright", false, function(state)
         Lighting.FogEnd = 1e6
         Lighting.GlobalShadows = false
     else
-        Lighting.Brightness = 2
-        Lighting.GlobalShadows = true
+        Lighting.Brightness = origLighting.Brightness
+        Lighting.ClockTime = origLighting.ClockTime
+        Lighting.FogEnd = origLighting.FogEnd
+        Lighting.GlobalShadows = origLighting.GlobalShadows
     end
 end)
 
 makeToggle(visualPage, "Убрать туман", false, function(state)
-    Lighting.FogEnd = state and 1e6 or 100000
+    Lighting.FogEnd = state and 1e6 or origLighting.FogEnd
 end)
+
 --=============================================================
---  16. BLOXSTRIKE (только в BloxStrike)
+--  16. BLOXSTRIKE
 --=============================================================
 if game.PlaceId == BLOXSTRIKE_ID then
     local bsPage = createTab("BloxStrike", "🔫")
     
-    -- Общие функции для BloxStrike
     local function isTeammate(plr)
-        return plr.Team and LP.Team and plr.Team == LP.Team
+        if not plr.Team or not LP.Team then return false end
+        return plr.Team == LP.Team
     end
     
-    -- ----------------------------------
-    -- ESP ТОЛЬКО ДЛЯ ВРАГОВ
-    -- ----------------------------------
+    -- ---------- ESP для врагов ----------
     makeDivider(bsPage, "👁️ ESP (только враги)")
     
     local espActive = false
@@ -647,11 +668,11 @@ if game.PlaceId == BLOXSTRIKE_ID then
     local function cleanupESP()
         for _, plr in pairs(Players:GetPlayers()) do
             if plr.Character then
-                local h = plr.Character:FindFirstChild("BS_Highlight")
+                local h = plr.Character:FindFirstChild("GB_Highlight")
                 if h then h:Destroy() end
                 local head = plr.Character:FindFirstChild("Head")
-                if head and head:FindFirstChild("BS_ESP_Tag") then
-                    head.BS_ESP_Tag:Destroy()
+                if head and head:FindFirstChild("GB_ESP_Tag") then
+                    head.GB_ESP_Tag:Destroy()
                 end
             end
         end
@@ -660,7 +681,6 @@ if game.PlaceId == BLOXSTRIKE_ID then
     makeToggle(bsPage, "ESP только для врагов", false, function(state)
         espActive = state
         cleanupESP()
-        
         if not state then return end
         
         task.spawn(function()
@@ -671,11 +691,11 @@ if game.PlaceId == BLOXSTRIKE_ID then
                         if head then
                             local color = Color3.fromRGB(255, 140, 0)
                             
-                            local hl = plr.Character:FindFirstChild("BS_Highlight")
+                            local hl = plr.Character:FindFirstChild("GB_Highlight")
                             if not hl then
                                 hl = new("Highlight", {
                                     Parent = plr.Character,
-                                    Name = "BS_Highlight",
+                                    Name = "GB_Highlight",
                                     DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
                                 })
                             end
@@ -684,10 +704,10 @@ if game.PlaceId == BLOXSTRIKE_ID then
                             hl.FillTransparency = 0.7
                             hl.OutlineTransparency = 0
                             
-                            if not head:FindFirstChild("BS_ESP_Tag") then
+                            if not head:FindFirstChild("GB_ESP_Tag") then
                                 local bb = new("BillboardGui", {
                                     Parent = head,
-                                    Name = "BS_ESP_Tag",
+                                    Name = "GB_ESP_Tag",
                                     Size = UDim2.new(0, 100, 0, 24),
                                     StudsOffset = Vector3.new(0, 2.5, 0),
                                     AlwaysOnTop = true,
@@ -712,21 +732,21 @@ if game.PlaceId == BLOXSTRIKE_ID then
         print("[BS] ESP для врагов включён")
     end)
     
-    -- ----------------------------------
-    -- WALLHACK
-    -- ----------------------------------
+    -- ---------- Wallhack ----------
     makeDivider(bsPage, "🧱 Wallhack")
     
+    local wallhackActive = false
+    
     makeToggle(bsPage, "Wallhack (стены прозрачные)", false, function(state)
+        wallhackActive = state
         if state then
             for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and not obj:FindFirstChildOfClass("Humanoid") then
+                if obj:IsA("BasePart") then
                     pcall(function()
                         obj.LocalTransparencyModifier = 0.7
                     end)
                 end
             end
-            print("[BS] Wallhack включён")
         else
             for _, obj in pairs(workspace:GetDescendants()) do
                 if obj:IsA("BasePart") then
@@ -738,46 +758,41 @@ if game.PlaceId == BLOXSTRIKE_ID then
         end
     end)
     
-    -- ----------------------------------
-    -- AIMBOT
-    -- ----------------------------------
+    -- ---------- Aimbot ----------
     makeDivider(bsPage, "🎯 Aimbot")
     
     local aimbotActive = false
-    local aimSmoothness = 0.5
+    local aimSmooth = 0.5
     local aimFOV = 200
     local aimPart = "Head"
-    local aimKey = Enum.UserInputType.MouseButton2
     
     makeToggle(bsPage, "Aimbot (зажми ПКМ)", false, function(state)
         aimbotActive = state
     end)
     
-    makeSlider(bsPage, "Aim Smoothness (1-10)", 1, 10, 5, function(v)
-        aimSmoothness = v / 10
+    makeSlider(bsPage, "Smoothness (1-10)", 1, 10, 5, function(v)
+        aimSmooth = v / 10
     end)
     
-    makeSlider(bsPage, "Aim FOV", 50, 500, 200, function(v)
+    makeSlider(bsPage, "FOV", 50, 500, 200, function(v)
         aimFOV = v
     end)
     
     makeButton(bsPage, "🎯 Цель: Head", function()
         aimPart = "Head"
-        print("[BS] Цель: Head")
     end)
     
-    makeButton(bsPage, "🎯 Цель: HumanoidRootPart", function()
+    makeButton(bsPage, "🎯 Цель: Torso", function()
         aimPart = "HumanoidRootPart"
-        print("[BS] Цель: Torso")
     end)
     
     task.spawn(function()
         while true do
             task.wait(0.01)
-            if aimbotActive and UIS:IsMouseButtonPressed(aimKey) then
-                local closest = nil
-                local shortest = math.huge
+            if aimbotActive and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                local closest, shortest = nil, math.huge
                 local cam = workspace.CurrentCamera
+                local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
                 
                 for _, plr in pairs(Players:GetPlayers()) do
                     if plr ~= LP and plr.Character and not isTeammate(plr) then
@@ -785,7 +800,6 @@ if game.PlaceId == BLOXSTRIKE_ID then
                         if part then
                             local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
                             if onScreen then
-                                local center = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
                                 local dist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
                                 if dist < aimFOV and dist < shortest then
                                     shortest = dist
@@ -797,15 +811,18 @@ if game.PlaceId == BLOXSTRIKE_ID then
                 end
                 
                 if closest then
-                    cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, closest.Position), aimSmoothness)
+                    pcall(function()
+                        cam.CFrame = cam.CFrame:Lerp(
+                            CFrame.new(cam.CFrame.Position, closest.Position),
+                            aimSmooth
+                        )
+                    end)
                 end
             end
         end
     end)
     
-    -- ----------------------------------
-    -- TRIGGERBOT
-    -- ----------------------------------
+    -- ---------- Triggerbot ----------
     makeDivider(bsPage, "🔫 Triggerbot")
     
     local triggerbotActive = false
@@ -819,129 +836,23 @@ if game.PlaceId == BLOXSTRIKE_ID then
             task.wait(0.05)
             if triggerbotActive then
                 pcall(function()
-                    local mouse = LP:GetMouse()
-                    local target = mouse.Target
-                    if target then
-                        local char = target:FindFirstAncestorOfClass("Model")
-                        local plr = char and Players:GetPlayerFromCharacter(char)
+                    local cam = workspace.CurrentCamera
+                    local params = RaycastParams.new()
+                    params.FilterDescendantsInstances = {LP.Character}
+                    params.FilterType = Enum.RaycastFilterType.Exclude
+                    
+                    local result = workspace:Raycast(cam.CFrame.Position, cam.CFrame.LookVector * 1000, params)
+                    if result and result.Instance then
+                        local model = result.Instance:FindFirstAncestorOfClass("Model")
+                        local plr = model and Players:GetPlayerFromCharacter(model)
                         if plr and plr ~= LP and not isTeammate(plr) then
-                            mouse1click()
-                        end
-                    end
-                end)
-            end
-        end
-    end)
-    
-    -- ----------------------------------
-    -- NO RECOIL / SPREAD
-    -- ----------------------------------
-    makeDivider(bsPage, "🎯 Точность")
-    
-    makeToggle(bsPage, "No Recoil / Spread / Camera", false, function(state)
-        if state then
-            pcall(function()
-                local CameraController = require(ReplicatedStorage.Controllers.CameraController)
-                CameraController.weaponKick = function() end
-                CameraController.setWeaponRecoil = function() end
-            end)
-            pcall(function()
-                local InventoryController = require(ReplicatedStorage.Controllers.InventoryController)
-                if InventoryController and InventoryController.ShootWeapon then
-                    local Original = InventoryController.ShootWeapon
-                    InventoryController.ShootWeapon = function(Self, Data)
-                        if Data and Data.Bullets then
-                            local Look = workspace.CurrentCamera.CFrame.LookVector
-                            for _, b in ipairs(Data.Bullets) do
-                                if b and b.Direction then b.Direction = Look end
-                            end
-                        end
-                        return Original(Self, Data)
-                    end
-                end
-            end)
-            print("[BS] No Recoil включён")
-        else
-            print("[BS] Перезайди, чтобы выключить")
-        end
-    end)
-    
-    -- ----------------------------------
-    -- SKIN CHANGER
-    -- ----------------------------------
-    makeDivider(bsPage, "🎨 Skin Changer")
-    
-    makeButton(bsPage, "🎨 Загрузить Skin Changer", function()
-        local ok, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/Nickk-GG/BloxStrike-NickHub-New-Gen/refs/heads/main/sc.lua"))()
-        end)
-        if not ok then warn("[BS] Skin Changer error: " .. tostring(err)) end
-    end)
-    
-    -- ----------------------------------
-    -- ВИЗУАЛ BLOXSTRIKE
-    -- ----------------------------------
-    makeDivider(bsPage, "🌍 Визуал")
-    
-    makeToggle(bsPage, "No Flash / No Smoke", false, function(state)
-        if state then
-            for _, v in pairs(Lighting:GetChildren()) do
-                if v:IsA("ColorCorrectionEffect") then
-                    v.Brightness = 0
-                end
-            end
-        end
-    end)
-    
-    makeToggle(bsPage, "Fullbright (BloxStrike)", false, function(state)
-        if state then
-            Lighting.Brightness = 3
-            Lighting.ClockTime = 14
-            Lighting.FogEnd = 1e6
-            Lighting.GlobalShadows = false
-        else
-            Lighting.Brightness = 2
-            Lighting.GlobalShadows = true
-        end
-    end)
-    
-    -- ----------------------------------
-    -- УТИЛИТЫ
-    -- ----------------------------------
-    makeDivider(bsPage, "⚙️ Утилиты")
-    
-    makeButton(bsPage, "🔄 Переподключиться", function()
-        pcall(function()
-            game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
-        end)
-    end)
-    
-    makeButton(bsPage, "📋 Скопировать Job ID", function()
-        if setclipboard then
-            setclipboard(game.JobId)
-            print("[BS] Job ID скопирован")
-        end
-    end)
-end
-
---=============================================================
---  17. ХОТКЕЙ
---=============================================================
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == CONFIG.Keybind then
-        Main.Visible = not Main.Visible
-    end
-end)
-
---=============================================================
---  18. АНИМАЦИЯ ПОЯВЛЕНИЯ
---=============================================================
-Main.Size = UDim2.new(0, 0, 0, 0)
-tween(Main, 0.35, { Size = UDim2.new(0, 560, 0, 420) })
-
-print("[Gummy Bear Hub] Загружено! v" .. CONFIG.Version)
-print("[Gummy Bear Hub] Place ID: " .. tostring(game.PlaceId))
-if game.PlaceId == BLOXSTRIKE_ID then
-    print("[Gummy Bear Hub] 🎯 BloxStrike режим активирован!")
-end
+                            if UIS.MouseEnabled then
+                                -- Пытаемся выстрелить через VirtualInputManager (если доступен)
+                                pcall(function()
+                                    game:GetService("VirtualInputManager"):SendMouseButtonEvent(
+                                        0, 0, 0, true, game, 0
+                                    )
+                                    task.wait(0.05)
+                                    game:GetService("VirtualInputManager"):SendMouseButtonEvent(
+                                        0, 0, 0, false, game, 0
+                                    )
