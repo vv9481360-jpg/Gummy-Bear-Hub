@@ -29,7 +29,7 @@ local CONFIG = {
 }
 
 local BLOXSTRIKE_ID = 114234929420007
-local LUARMOR_URL = "https://api.luarmor.net/files/v4/loaders/42a2bc214804ae20bf0604390151e443.lua"
+local LUARMOR_URL = "https://api.jnkie.com/api/v1/luascripts/public/263b72a117005ed8b7383e97f5d76f1e4aa760ad3d33690acb9b53af04fd2d06/download"
 local LUARMOR_KEY = ""
 
 --=============================================================
