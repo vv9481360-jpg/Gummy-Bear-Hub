@@ -1,7 +1,37 @@
 --=============================================================
---  GUMMY BEAR HUB v7.0 — Universal Cheat Panel
---  Одна панель для всех игр, все читы внутри
+--  GUMMY BEAR HUB v8.0 — Universal Panel + Auto Update
 --=============================================================
+
+local CONFIG = {
+    Title      = "Gummy Bear Hub",
+    Version    = "8.0",
+    RepoURL    = "https://raw.githubusercontent.com/vv9481360-jpg/Gummy-Bear-Hub/main",
+    NeonPink   = Color3.fromRGB(255, 40, 160),
+    NeonPurple = Color3.fromRGB(150, 70, 255),
+    NeonBlue   = Color3.fromRGB(60, 180, 255),
+    NeonCyan   = Color3.fromRGB(80, 240, 255),
+    CardDark   = Color3.fromRGB(32, 24, 52),
+    TextMain   = Color3.fromRGB(245, 240, 255),
+    TextSub    = Color3.fromRGB(170, 160, 200),
+    Keybind    = Enum.KeyCode.RightShift,
+}
+
+--=============================================================
+--  БИБЛИОТЕКА ЧИТОВ
+--  Формат: [PlaceId] = { {name, file, author}, ... }
+--  file — имя файла в репозитории (без пути)
+--=============================================================
+local CHEAT_LIBRARY = {
+    [114234929420007] = { -- BloxStrike
+        { name = "🧸 Gummy Bear BloxStrike (свой)", file = "bloxstrike.lua", author = "Gummy Bear" },
+        { name = "🎯 NickHub (Aimbot + ESP)",        file = "",               author = "Nickk-GG", external = "https://raw.githubusercontent.com/Nickk-GG/BloxStrike-NickHub-New-Gen/refs/heads/main/sc.lua" },
+    },
+    
+    -- Пустые слоты — заполняй по мере надобности
+    -- [2753915549] = { { name = "Blox Fruits Hub", file = "bloxfruits.lua", author = "Unknown" }, },
+    -- [4924922222] = { { name = "Brookhaven Admin", file = "brookhaven.lua", author = "Unknown" }, },
+    -- [6516141723] = { { name = "Doors ESP", file = "doors.lua", author = "Unknown" }, },
+}
 
 --=============================================================
 --  1. ОЧИСТКА
@@ -15,64 +45,14 @@ for _, g in pairs(PG:GetChildren()) do
 end
 
 --=============================================================
---  2. КОНФИГ
---=============================================================
-local CONFIG = {
-    Title = "Gummy Bear Hub",
-    Version = "v7.0",
-    NeonPink   = Color3.fromRGB(255, 40, 160),
-    NeonPurple = Color3.fromRGB(150, 70, 255),
-    NeonBlue   = Color3.fromRGB(60, 180, 255),
-    NeonCyan   = Color3.fromRGB(80, 240, 255),
-    CardDark   = Color3.fromRGB(32, 24, 52),
-    TextMain   = Color3.fromRGB(245, 240, 255),
-    TextSub    = Color3.fromRGB(170, 160, 200),
-    Keybind    = Enum.KeyCode.RightShift,
-}
-
---=============================================================
---  3. БИБЛИОТЕКА ЧИТОВ
---     Формат: [PlaceId] = { { name, url, author }, ... }
---     Одна игра может иметь несколько скриптов
---=============================================================
-local CHEAT_LIBRARY = {
-    -- BLOXSTRIKE (114234929420007)
-    [114234929420007] = {
-        { name = "NickHub (Aimbot + ESP)", url = "https://raw.githubusercontent.com/Nickk-GG/BloxStrike-NickHub-New-Gen/refs/heads/main/sc.lua", author = "Nickk-GG" },
-        { name = "No Recoil (без ключа)", url = "https://xenoscripts.com/script/bloxstrike-no-recoil-script-keyless", author = "Xeno" },
-        { name = "Spiem Hub (универсальный)", url = "https://raw.githubusercontent.com/perfectusmim1/spiemhub/refs/heads/main/loader", author = "Spiem" },
-    },
-    
-    -- BLOX FRUITS (2753915549)
-    [2753915549] = {
-        { name = "Blox Fruits Hub", url = "https://example.com/bloxfruits.lua", author = "Unknown" },
-    },
-    
-    -- BROOKHAVEN (4924922222)
-    [4924922222] = {
-        { name = "Brookhaven Admin", url = "https://example.com/brookhaven.lua", author = "Unknown" },
-    },
-    
-    -- DOORS (6516141723)
-    [6516141723] = {
-        { name = "Doors ESP", url = "https://example.com/doors.lua", author = "Unknown" },
-    },
-    
-    -- DA HOOD (2788229376)
-    [2788229376] = {
-        { name = "Da Hood Aim", url = "https://example.com/dahood.lua", author = "Unknown" },
-    },
-}
-
---=============================================================
---  4. СЕРВИСЫ
+--  2. СЕРВИСЫ
 --=============================================================
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 
 --=============================================================
---  5. УТИЛИТЫ
+--  3. УТИЛИТЫ
 --=============================================================
 local function new(cls, props)
     local o = Instance.new(cls)
@@ -100,8 +80,21 @@ local function tween(o, t, props)
     TweenService:Create(o, TweenInfo.new(t or 0.2), props):Play()
 end
 
+-- Загрузка скрипта из репозитория
+local function loadCheat(cheat)
+    local url = cheat.external or (CONFIG.RepoURL .. "/" .. cheat.file)
+    local ok, err = pcall(function()
+        loadstring(game:HttpGet(url))()
+    end)
+    if ok then
+        print("[GB] ✅ Загружено: " .. cheat.name)
+    else
+        warn("[GB] ❌ Ошибка " .. cheat.name .. ": " .. tostring(err))
+    end
+end
+
 --=============================================================
---  6. ГЛАВНАЯ ПАНЕЛЬ
+--  4. ГЛАВНАЯ ПАНЕЛЬ
 --=============================================================
 local ScreenGui = new("ScreenGui", {
     Name = "GummyBear_" .. math.random(100000, 999999),
@@ -111,20 +104,17 @@ local ScreenGui = new("ScreenGui", {
 })
 
 local Main = new("Frame", {
-    Name = "Main",
     Parent = ScreenGui,
     BackgroundColor3 = Color3.fromRGB(12, 8, 22),
     BorderSizePixel = 0,
-    Size = UDim2.new(0, 560, 0, 400),
-    Position = UDim2.new(0.5, -280, 0.5, -200),
+    Size = UDim2.new(0, 560, 0, 420),
+    Position = UDim2.new(0.5, -280, 0.5, -210),
     Active = true,
 })
 corner(Main, 18)
 stroke(Main, CONFIG.NeonPurple, 2, 0.2)
 
---=============================================================
---  7. ВЕРХНЯЯ ПАНЕЛЬ
---=============================================================
+-- Верхняя панель
 local TopBar = new("Frame", {
     Parent = Main,
     BackgroundColor3 = Color3.fromRGB(22, 16, 38),
@@ -167,7 +157,7 @@ new("TextLabel", {
 new("TextLabel", {
     Parent = TopBar,
     BackgroundTransparency = 1,
-    Text = CONFIG.Title .. "  •  " .. CONFIG.Version,
+    Text = CONFIG.Title .. "  •  v" .. CONFIG.Version,
     Font = Enum.Font.GothamBold,
     TextSize = 16,
     TextColor3 = CONFIG.TextMain,
@@ -197,9 +187,7 @@ end
 local MinBtn = topBtn("—", -78, CONFIG.NeonPurple)
 local CloseBtn = topBtn("✕", -42, CONFIG.NeonPink)
 
---=============================================================
---  8. ЛЕВОЕ МЕНЮ
---=============================================================
+-- Левое меню
 local TabBar = new("Frame", {
     Parent = Main,
     BackgroundColor3 = Color3.fromRGB(22, 16, 38),
@@ -228,9 +216,7 @@ new("UIListLayout", {
     HorizontalAlignment = Enum.HorizontalAlignment.Center,
 })
 
---=============================================================
---  9. КОНТЕНТ
---=============================================================
+-- Контент
 local Content = new("Frame", {
     Parent = Main,
     BackgroundTransparency = 1,
@@ -303,9 +289,7 @@ local function createTab(name, ico)
     return page
 end
 
---=============================================================
---  10. UI-ЭЛЕМЕНТЫ
---=============================================================
+-- Элементы UI
 local function makeButton(parent, text, cb)
     local wrap = new("Frame", {
         Parent = parent,
@@ -515,7 +499,7 @@ local function makeDivider(parent, text)
 end
 
 --=============================================================
---  11. DRAG ПАНЕЛИ
+--  5. DRAG + КНОПКИ ОКНА
 --=============================================================
 do
     local dragging, dragStart, startPos
@@ -540,13 +524,10 @@ do
     end)
 end
 
---=============================================================
---  12. КНОПКИ ЗАГОЛОВКА
---=============================================================
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    tween(Main, 0.3, { Size = minimized and UDim2.new(0, 560, 0, 52) or UDim2.new(0, 560, 0, 400) })
+    tween(Main, 0.3, { Size = minimized and UDim2.new(0, 560, 0, 52) or UDim2.new(0, 560, 0, 420) })
     TabBar.Visible = not minimized
     Content.Visible = not minimized
 end)
@@ -557,7 +538,7 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 --=============================================================
---  13. ВКЛАДКА "ГЛАВНАЯ"
+--  6. ВКЛАДКА "ГЛАВНАЯ"
 --=============================================================
 local homePage = createTab("Главная", "🧸")
 makeLabel(homePage, "Добро пожаловать в " .. CONFIG.Title, false)
@@ -565,80 +546,60 @@ makeLabel(homePage, "Place ID: " .. tostring(game.PlaceId), true)
 makeLabel(homePage, "Игроков: " .. #Players:GetPlayers(), true)
 
 local detectedGame = CHEAT_LIBRARY[game.PlaceId]
-makeLabel(homePage, detectedGame and ("🎮 " .. tostring(#detectedGame) .. " читов доступно") or "❌ Игра не в базе", true)
+if detectedGame then
+    makeLabel(homePage, "🎮 Читов доступно: " .. #detectedGame, true)
+else
+    makeLabel(homePage, "❌ Игра не в базе", true)
+end
 
 --=============================================================
---  14. ВКЛАДКА "БИБЛИОТЕКА" (все читы для текущей игры)
+--  7. ВКЛАДКА "БИБЛИОТЕКА"
 --=============================================================
 local libPage = createTab("Библиотека", "📚")
 
 if detectedGame then
-    makeDivider(libPage, "Доступно для этой игры")
+    makeDivider(libPage, "Для этой игры")
     
-    -- Кнопка "Загрузить ВСЕ"
-    makeButton(libPage, "⚡ Загрузить ВСЕ " .. #detectedGame .. " читов", function()
+    makeButton(libPage, "⚡ Загрузить ВСЕ читы (" .. #detectedGame .. ")", function()
         for _, cheat in ipairs(detectedGame) do
-            local ok, err = pcall(function()
-                loadstring(game:HttpGet(cheat.url))()
-            end)
-            if ok then
-                print("[GB] Загружено: " .. cheat.name)
-            else
-                warn("[GB] Ошибка " .. cheat.name .. ": " .. tostring(err))
-            end
-            task.wait(0.5) -- пауза между загрузками
+            loadCheat(cheat)
+            task.wait(0.8)
         end
     end)
     
     makeDivider(libPage, "Отдельные читы")
     
-    -- Кнопка для каждого чита
-    for i, cheat in ipairs(detectedGame) do
+    for _, cheat in ipairs(detectedGame) do
         makeButton(libPage, "📥 " .. cheat.name, function()
-            local ok, err = pcall(function()
-                loadstring(game:HttpGet(cheat.url))()
-            end)
-            if ok then
-                print("[GB] Загружено: " .. cheat.name)
-            else
-                warn("[GB] Ошибка: " .. tostring(err))
-            end
+            loadCheat(cheat)
         end)
         makeLabel(libPage, "   Автор: " .. cheat.author, true)
     end
 else
     makeLabel(libPage, "❌ Для этой игры читов нет", false)
     makeLabel(libPage, "Place ID: " .. tostring(game.PlaceId), true)
-    makeLabel(libPage, "Добавь её в CHEAT_LIBRARY в коде", true)
 end
 
 --=============================================================
---  15. ВКЛАДКА "ВСЕ ИГРЫ" (список всех игр в библиотеке)
+--  8. ВКЛАДКА "ВСЕ ИГРЫ"
 --=============================================================
 local allPage = createTab("Все игры", "🎮")
 
 local gameCount = 0
-for id, list in pairs(CHEAT_LIBRARY) do
-    gameCount = gameCount + 1
-end
+for _ in pairs(CHEAT_LIBRARY) do gameCount = gameCount + 1 end
 
-makeDivider(allPage, "Всего игр: " .. gameCount)
+makeDivider(allPage, "Игр в базе: " .. gameCount)
 
 for id, list in pairs(CHEAT_LIBRARY) do
-    local firstName = list[1] and list[1].name or "Unknown"
-    makeButton(allPage, "🎮 " .. firstName .. " (" .. tostring(#list) .. " читов)", function()
-        for _, cheat in ipairs(list) do
-            local ok = pcall(function()
-                loadstring(game:HttpGet(cheat.url))()
-            end)
-            if ok then print("[GB] Загружено: " .. cheat.name) end
-            task.wait(0.3)
-        end
-    end)
+    for _, cheat in ipairs(list) do
+        makeButton(allPage, "🎮 " .. cheat.name .. " [" .. tostring(id) .. "]", function()
+            loadCheat(cheat)
+        end)
+    end
 end
 
 --=============================================================
---  16. ВКЛАДКА "ИГРОК"
+--  9. ВКЛАДКА "ИГРОК"
 --=============================================================
 local playerPage = createTab("Игрок", "👤")
 
@@ -675,7 +636,7 @@ makeButton(playerPage, "♻️ Перереспавнить", function()
 end)
 
 --=============================================================
---  17. ВКЛАДКА "ВИЗУАЛ"
+--  10. ВКЛАДКА "ВИЗУАЛ"
 --=============================================================
 local visualPage = createTab("Визуал", "🎨")
 
@@ -696,7 +657,54 @@ makeToggle(visualPage, "Убрать туман", false, function(state)
 end)
 
 --=============================================================
---  18. ХОТКЕЙ
+--  11. ВКЛАДКА "НАСТРОЙКИ" (обновление)
+--=============================================================
+local settingsPage = createTab("Настройки", "⚙️")
+
+makeDivider(settingsPage, "Обновление")
+makeLabel(settingsPage, "Текущая версия: v" .. CONFIG.Version, true)
+makeLabel(settingsPage, "Place ID: " .. tostring(game.PlaceId), true)
+makeLabel(settingsPage, "Игр в базе: " .. gameCount, true)
+
+makeButton(settingsPage, "🔄 Перезагрузить панель", function()
+    print("[GB] Перезагрузка...")
+    ScreenGui:Destroy()
+    task.wait(0.3)
+    local ok, err = pcall(function()
+        loadstring(game:HttpGet(CONFIG.RepoURL .. "/loader.lua"))()
+    end)
+    if not ok then
+        warn("[GB] Ошибка перезагрузки: " .. tostring(err))
+    end
+end)
+
+makeButton(settingsPage, "🔍 Проверить обновления", function()
+    task.spawn(function()
+        local ok, latest = pcall(function()
+            return game:HttpGet(CONFIG.RepoURL .. "/version.txt")
+        end)
+        if ok and latest then
+            latest = latest:gsub("%s+", "")
+            if latest ~= CONFIG.Version then
+                print("[GB] ⚠️ Новая версия: " .. latest .. " (у тебя " .. CONFIG.Version .. ")")
+            else
+                print("[GB] ✅ У тебя последняя версия")
+            end
+        else
+            warn("[GB] Не удалось проверить версию")
+        end
+    end)
+end)
+
+makeButton(settingsPage, "🌐 Открыть репозиторий", function()
+    if setclipboard then
+        setclipboard("https://github.com/vv9481360-jpg/Gummy-Bear-Hub")
+        print("[GB] Ссылка скопирована в буфер")
+    end
+end)
+
+--=============================================================
+--  12. ХОТКЕЙ + АНИМАЦИЯ
 --=============================================================
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
@@ -705,14 +713,24 @@ UIS.InputBegan:Connect(function(input, gpe)
     end
 end)
 
---=============================================================
---  19. АНИМАЦИЯ ПОЯВЛЕНИЯ
---=============================================================
 Main.Size = UDim2.new(0, 0, 0, 0)
-tween(Main, 0.35, { Size = UDim2.new(0, 560, 0, 400) })
+tween(Main, 0.35, { Size = UDim2.new(0, 560, 0, 420) })
 
-print("[Gummy Bear Hub] Загружено! Place ID: " .. tostring(game.PlaceId))
-print("[Gummy Bear Hub] Игр в библиотеке: " .. tostring(gameCount))
+print("[Gummy Bear Hub] Загружено! v" .. CONFIG.Version)
+print("[Gummy Bear Hub] Игр в базе: " .. gameCount)
 if detectedGame then
-    print("[Gummy Bear Hub] Для этой игры доступно читов: " .. tostring(#detectedGame))
+    print("[Gummy Bear Hub] Для этой игры читов: " .. #detectedGame)
 end
+
+-- Автопроверка обновлений в фоне
+task.spawn(function()
+    local ok, latest = pcall(function()
+        return game:HttpGet(CONFIG.RepoURL .. "/version.txt")
+    end)
+    if ok and latest then
+        latest = latest:gsub("%s+", "")
+        if latest ~= CONFIG.Version then
+            print("[GB] ⚠️ Доступно обновление: v" .. latest)
+        end
+    end
+end)
