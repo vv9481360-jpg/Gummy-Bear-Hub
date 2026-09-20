@@ -1,37 +1,7 @@
 --=============================================================
---  GUMMY BEAR HUB v8.0 — Universal Panel + Auto Update
+--  GUMMY BEAR HUB v10.0 — BloxStrike Full Edition
+--  ESP (враги) + Aimbot + Wallhack + Skin Changer + Triggerbot
 --=============================================================
-
-local CONFIG = {
-    Title      = "Gummy Bear Hub",
-    Version    = "8.0",
-    RepoURL    = "https://raw.githubusercontent.com/vv9481360-jpg/Gummy-Bear-Hub/main",
-    NeonPink   = Color3.fromRGB(255, 40, 160),
-    NeonPurple = Color3.fromRGB(150, 70, 255),
-    NeonBlue   = Color3.fromRGB(60, 180, 255),
-    NeonCyan   = Color3.fromRGB(80, 240, 255),
-    CardDark   = Color3.fromRGB(32, 24, 52),
-    TextMain   = Color3.fromRGB(245, 240, 255),
-    TextSub    = Color3.fromRGB(170, 160, 200),
-    Keybind    = Enum.KeyCode.RightShift,
-}
-
---=============================================================
---  БИБЛИОТЕКА ЧИТОВ
---  Формат: [PlaceId] = { {name, file, author}, ... }
---  file — имя файла в репозитории (без пути)
---=============================================================
-local CHEAT_LIBRARY = {
-    [114234929420007] = { -- BloxStrike
-        { name = "🧸 Gummy Bear BloxStrike (свой)", file = "bloxstrike.lua", author = "Gummy Bear" },
-        { name = "🎯 NickHub (Aimbot + ESP)",        file = "",               author = "Nickk-GG", external = "https://raw.githubusercontent.com/Nickk-GG/BloxStrike-NickHub-New-Gen/refs/heads/main/sc.lua" },
-    },
-    
-    -- Пустые слоты — заполняй по мере надобности
-    -- [2753915549] = { { name = "Blox Fruits Hub", file = "bloxfruits.lua", author = "Unknown" }, },
-    -- [4924922222] = { { name = "Brookhaven Admin", file = "brookhaven.lua", author = "Unknown" }, },
-    -- [6516141723] = { { name = "Doors ESP", file = "doors.lua", author = "Unknown" }, },
-}
 
 --=============================================================
 --  1. ОЧИСТКА
@@ -45,14 +15,32 @@ for _, g in pairs(PG:GetChildren()) do
 end
 
 --=============================================================
---  2. СЕРВИСЫ
+--  2. КОНФИГ
 --=============================================================
-local UIS = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
+local CONFIG = {
+    Title = "Gummy Bear Hub",
+    Version = "10.0",
+    NeonPink = Color3.fromRGB(255, 40, 160),
+    NeonPurple = Color3.fromRGB(150, 70, 255),
+    NeonBlue = Color3.fromRGB(60, 180, 255),
+    NeonCyan = Color3.fromRGB(80, 240, 255),
+    CardDark = Color3.fromRGB(32, 24, 52),
+    TextMain = Color3.fromRGB(245, 240, 255),
+    TextSub = Color3.fromRGB(170, 160, 200),
+    Keybind = Enum.KeyCode.RightShift,
+}
 
 --=============================================================
---  3. УТИЛИТЫ
+--  3. СЕРВИСЫ
+--=============================================================
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+--=============================================================
+--  4. УТИЛИТЫ
 --=============================================================
 local function new(cls, props)
     local o = Instance.new(cls)
@@ -80,21 +68,8 @@ local function tween(o, t, props)
     TweenService:Create(o, TweenInfo.new(t or 0.2), props):Play()
 end
 
--- Загрузка скрипта из репозитория
-local function loadCheat(cheat)
-    local url = cheat.external or (CONFIG.RepoURL .. "/" .. cheat.file)
-    local ok, err = pcall(function()
-        loadstring(game:HttpGet(url))()
-    end)
-    if ok then
-        print("[GB] ✅ Загружено: " .. cheat.name)
-    else
-        warn("[GB] ❌ Ошибка " .. cheat.name .. ": " .. tostring(err))
-    end
-end
-
 --=============================================================
---  4. ГЛАВНАЯ ПАНЕЛЬ
+--  5. ГЛАВНАЯ ПАНЕЛЬ
 --=============================================================
 local ScreenGui = new("ScreenGui", {
     Name = "GummyBear_" .. math.random(100000, 999999),
@@ -114,7 +89,9 @@ local Main = new("Frame", {
 corner(Main, 18)
 stroke(Main, CONFIG.NeonPurple, 2, 0.2)
 
--- Верхняя панель
+--=============================================================
+--  6. ВЕРХНЯЯ ПАНЕЛЬ
+--=============================================================
 local TopBar = new("Frame", {
     Parent = Main,
     BackgroundColor3 = Color3.fromRGB(22, 16, 38),
@@ -187,7 +164,9 @@ end
 local MinBtn = topBtn("—", -78, CONFIG.NeonPurple)
 local CloseBtn = topBtn("✕", -42, CONFIG.NeonPink)
 
--- Левое меню
+--=============================================================
+--  7. ЛЕВОЕ МЕНЮ
+--=============================================================
 local TabBar = new("Frame", {
     Parent = Main,
     BackgroundColor3 = Color3.fromRGB(22, 16, 38),
@@ -216,7 +195,9 @@ new("UIListLayout", {
     HorizontalAlignment = Enum.HorizontalAlignment.Center,
 })
 
--- Контент
+--=============================================================
+--  8. КОНТЕНТ
+--=============================================================
 local Content = new("Frame", {
     Parent = Main,
     BackgroundTransparency = 1,
@@ -289,7 +270,9 @@ local function createTab(name, ico)
     return page
 end
 
--- Элементы UI
+--=============================================================
+--  9. ЭЛЕМЕНТЫ UI
+--=============================================================
 local function makeButton(parent, text, cb)
     local wrap = new("Frame", {
         Parent = parent,
@@ -499,7 +482,7 @@ local function makeDivider(parent, text)
 end
 
 --=============================================================
---  5. DRAG + КНОПКИ ОКНА
+--  10. DRAG ПАНЕЛИ
 --=============================================================
 do
     local dragging, dragStart, startPos
@@ -524,6 +507,9 @@ do
     end)
 end
 
+--=============================================================
+--  11. КНОПКИ ОКНА
+--=============================================================
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -538,68 +524,15 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 --=============================================================
---  6. ВКЛАДКА "ГЛАВНАЯ"
+--  12. ГЛАВНАЯ
 --=============================================================
 local homePage = createTab("Главная", "🧸")
 makeLabel(homePage, "Добро пожаловать в " .. CONFIG.Title, false)
 makeLabel(homePage, "Place ID: " .. tostring(game.PlaceId), true)
 makeLabel(homePage, "Игроков: " .. #Players:GetPlayers(), true)
 
-local detectedGame = CHEAT_LIBRARY[game.PlaceId]
-if detectedGame then
-    makeLabel(homePage, "🎮 Читов доступно: " .. #detectedGame, true)
-else
-    makeLabel(homePage, "❌ Игра не в базе", true)
-end
-
 --=============================================================
---  7. ВКЛАДКА "БИБЛИОТЕКА"
---=============================================================
-local libPage = createTab("Библиотека", "📚")
-
-if detectedGame then
-    makeDivider(libPage, "Для этой игры")
-    
-    makeButton(libPage, "⚡ Загрузить ВСЕ читы (" .. #detectedGame .. ")", function()
-        for _, cheat in ipairs(detectedGame) do
-            loadCheat(cheat)
-            task.wait(0.8)
-        end
-    end)
-    
-    makeDivider(libPage, "Отдельные читы")
-    
-    for _, cheat in ipairs(detectedGame) do
-        makeButton(libPage, "📥 " .. cheat.name, function()
-            loadCheat(cheat)
-        end)
-        makeLabel(libPage, "   Автор: " .. cheat.author, true)
-    end
-else
-    makeLabel(libPage, "❌ Для этой игры читов нет", false)
-    makeLabel(libPage, "Place ID: " .. tostring(game.PlaceId), true)
-end
-
---=============================================================
---  8. ВКЛАДКА "ВСЕ ИГРЫ"
---=============================================================
-local allPage = createTab("Все игры", "🎮")
-
-local gameCount = 0
-for _ in pairs(CHEAT_LIBRARY) do gameCount = gameCount + 1 end
-
-makeDivider(allPage, "Игр в базе: " .. gameCount)
-
-for id, list in pairs(CHEAT_LIBRARY) do
-    for _, cheat in ipairs(list) do
-        makeButton(allPage, "🎮 " .. cheat.name .. " [" .. tostring(id) .. "]", function()
-            loadCheat(cheat)
-        end)
-    end
-end
-
---=============================================================
---  9. ВКЛАДКА "ИГРОК"
+--  13. ИГРОК
 --=============================================================
 local playerPage = createTab("Игрок", "👤")
 
@@ -636,7 +569,44 @@ makeButton(playerPage, "♻️ Перереспавнить", function()
 end)
 
 --=============================================================
---  10. ВКЛАДКА "ВИЗУАЛ"
+--  14. ТЕЛЕПОРТ
+--=============================================================
+local tpPage = createTab("Телепорт", "🌀")
+
+local function tpTo(pos)
+    local char = LP.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then hrp.CFrame = CFrame.new(pos) end
+end
+
+makeButton(tpPage, "⬆️ Вверх на 100", function()
+    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then tpTo(hrp.Position + Vector3.new(0, 100, 0)) end
+end)
+
+makeButton(tpPage, "🎯 К случайному игроку", function()
+    local t = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(t, p)
+        end
+    end
+    if #t == 0 then return end
+    local target = t[math.random(1, #t)]
+    tpTo(target.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0))
+end)
+
+makeButton(tpPage, "🌍 Сохранить позицию", function()
+    local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then _G.__BearPos = hrp.Position end
+end)
+
+makeButton(tpPage, "↩️ Вернуться", function()
+    if _G.__BearPos then tpTo(_G.__BearPos) end
+end)
+
+--=============================================================
+--  15. ВИЗУАЛ
 --=============================================================
 local visualPage = createTab("Визуал", "🎨")
 
@@ -657,80 +627,278 @@ makeToggle(visualPage, "Убрать туман", false, function(state)
 end)
 
 --=============================================================
---  11. ВКЛАДКА "НАСТРОЙКИ" (обновление)
+--  16. BLOXSTRIKE (только в BloxStrike)
 --=============================================================
-local settingsPage = createTab("Настройки", "⚙️")
+local BLOXSTRIKE_ID = 114234929420007
 
-makeDivider(settingsPage, "Обновление")
-makeLabel(settingsPage, "Текущая версия: v" .. CONFIG.Version, true)
-makeLabel(settingsPage, "Place ID: " .. tostring(game.PlaceId), true)
-makeLabel(settingsPage, "Игр в базе: " .. gameCount, true)
-
-makeButton(settingsPage, "🔄 Перезагрузить панель", function()
-    print("[GB] Перезагрузка...")
-    ScreenGui:Destroy()
-    task.wait(0.3)
-    local ok, err = pcall(function()
-        loadstring(game:HttpGet(CONFIG.RepoURL .. "/loader.lua"))()
-    end)
-    if not ok then
-        warn("[GB] Ошибка перезагрузки: " .. tostring(err))
+if game.PlaceId == BLOXSTRIKE_ID then
+    local bsPage = createTab("BloxStrike", "🔫")
+    
+    -- ----------------------------------
+    -- ESP только для врагов
+    -- ----------------------------------
+    makeDivider(bsPage, "👁️ ESP (только враги)")
+    
+    local espFolder = new("Folder", { Parent = ScreenGui, Name = "BS_ESP" })
+    local espActive = false
+    local wallhackActive = false
+    
+    local function isTeammate(plr)
+        return plr.Team and LP.Team and plr.Team == LP.Team
     end
-end)
-
-makeButton(settingsPage, "🔍 Проверить обновления", function()
-    task.spawn(function()
-        local ok, latest = pcall(function()
-            return game:HttpGet(CONFIG.RepoURL .. "/version.txt")
+    
+    makeToggle(bsPage, "ESP только для врагов", false, function(state)
+        espActive = state
+        for _, v in pairs(espFolder:GetChildren()) do v:Destroy() end
+        
+        if not state then
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr.Character then
+                    local h = plr.Character:FindFirstChild("BS_Highlight")
+                    if h then h:Destroy() end
+                    local head = plr.Character:FindFirstChild("Head")
+                    if head and head:FindFirstChild("BS_ESP_Tag") then
+                        head.BS_ESP_Tag:Destroy()
+                    end
+                end
+            end
+            return
+        end
+        
+        task.spawn(function()
+            while espActive do
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= LP and plr.Character and not isTeammate(plr) then
+                        local head = plr.Character:FindFirstChild("Head")
+                        if head then
+                            local color = Color3.fromRGB(255, 140, 0)
+                            
+                            local hl = plr.Character:FindFirstChild("BS_Highlight")
+                            if not hl then
+                                hl = new("Highlight", {
+                                    Parent = plr.Character,
+                                    Name = "BS_Highlight",
+                                    DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
+                                })
+                            end
+                            hl.FillColor = color
+                            hl.OutlineColor = color
+                            hl.FillTransparency = 0.7
+                            hl.OutlineTransparency = 0
+                            
+                            if not head:FindFirstChild("BS_ESP_Tag") then
+                                local bb = new("BillboardGui", {
+                                    Parent = head,
+                                    Name = "BS_ESP_Tag",
+                                    Size = UDim2.new(0, 100, 0, 24),
+                                    StudsOffset = Vector3.new(0, 2.5, 0),
+                                    AlwaysOnTop = true,
+                                })
+                                new("TextLabel", {
+                                    Parent = bb,
+                                    BackgroundTransparency = 1,
+                                    Size = UDim2.new(1, 0, 1, 0),
+                                    Text = plr.Name .. " [ENEMY]",
+                                    Font = Enum.Font.GothamBold,
+                                    TextSize = 13,
+                                    TextColor3 = color,
+                                    TextStrokeTransparency = 0.4,
+                                })
+                            end
+                        end
+                    end
+                end
+                task.wait(0.3)
+            end
         end)
-        if ok and latest then
-            latest = latest:gsub("%s+", "")
-            if latest ~= CONFIG.Version then
-                print("[GB] ⚠️ Новая версия: " .. latest .. " (у тебя " .. CONFIG.Version .. ")")
-            else
-                print("[GB] ✅ У тебя последняя версия")
+        print("[BS] ESP для врагов включён")
+    end)
+    
+    -- ----------------------------------
+    -- Wallhack (полупрозрачные стены)
+    -- ----------------------------------
+    makeToggle(bsPage, "Wallhack (видеть сквозь стены)", false, function(state)
+        wallhackActive = state
+        
+        if state then
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and obj.Name ~= "HumanoidRootPart" then
+                    local ok = pcall(function()
+                        obj.LocalTransparencyModifier = 0.7
+                        obj.Transparency = 0.7
+                    end)
+                end
             end
         else
-            warn("[GB] Не удалось проверить версию")
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    pcall(function()
+                        obj.LocalTransparencyModifier = 0
+                        obj.Transparency = 0
+                    end)
+                end
+            end
         end
     end)
-end)
-
-makeButton(settingsPage, "🌐 Открыть репозиторий", function()
-    if setclipboard then
-        setclipboard("https://github.com/vv9481360-jpg/Gummy-Bear-Hub")
-        print("[GB] Ссылка скопирована в буфер")
-    end
-end)
-
---=============================================================
---  12. ХОТКЕЙ + АНИМАЦИЯ
---=============================================================
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == CONFIG.Keybind then
-        Main.Visible = not Main.Visible
-    end
-end)
-
-Main.Size = UDim2.new(0, 0, 0, 0)
-tween(Main, 0.35, { Size = UDim2.new(0, 560, 0, 420) })
-
-print("[Gummy Bear Hub] Загружено! v" .. CONFIG.Version)
-print("[Gummy Bear Hub] Игр в базе: " .. gameCount)
-if detectedGame then
-    print("[Gummy Bear Hub] Для этой игры читов: " .. #detectedGame)
+    
+    -- ----------------------------------
+    -- Aimbot
+    -- ----------------------------------
+    makeDivider(bsPage, "🎯 Aimbot")
+    
+    local aimbotActive = false
+    local aimPart = "Head"
+    local aimSmoothness = 0.5
+    
+    makeToggle(bsPage, "Aimbot (зажать правую кнопку)", false, function(state)
+        aimbotActive = state
+    end)
+    
+    makeSlider(bsPage, "Aim Smoothness", 1, 10, 5, function(v)
+        aimSmoothness = v / 10
+    end)
+    
+    task.spawn(function()
+        while true do
+            task.wait(0.01)
+            if aimbotActive and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                local closest = nil
+                local shortest = math.huge
+                local cam = workspace.CurrentCamera
+                
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= LP and plr.Character and not isTeammate(plr) then
+                        local part = plr.Character:FindFirstChild(aimPart)
+                        if part then
+                            local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
+                            if onScreen then
+                                local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
+                                if dist < shortest then
+                                    shortest = dist
+                                    closest = part
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                if closest then
+                    cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, closest.Position), aimSmoothness)
+                end
+            end
+        end
+    end)
+    
+    -- ----------------------------------
+    -- Triggerbot
+    -- ----------------------------------
+    makeDivider(bsPage, "🔫 Triggerbot")
+    
+    local triggerbotActive = false
+    
+    makeToggle(bsPage, "Triggerbot (авто-выстрел в цель)", false, function(state)
+        triggerbotActive = state
+    end)
+    
+    task.spawn(function()
+        while true do
+            task.wait(0.05)
+            if triggerbotActive then
+                local mouse = LP:GetMouse()
+                local target = mouse.Target
+                if target then
+                    local char = target:FindFirstAncestorOfClass("Model")
+                    local plr = char and Players:GetPlayerFromCharacter(char)
+                    if plr and plr ~= LP and not isTeammate(plr) then
+                        pcall(function()
+                            mouse1click()
+                        end)
+                    end
+                end
+            end
+        end
+    end)
+    
+    -- ----------------------------------
+    -- No Recoil / Spread
+    -- ----------------------------------
+    makeDivider(bsPage, "🎯 Точность")
+    
+    makeToggle(bsPage, "No Recoil / Spread / Camera", false, function(state)
+        if state then
+            pcall(function()
+                local CameraController = require(ReplicatedStorage.Controllers.CameraController)
+                CameraController.weaponKick = function() end
+                CameraController.setWeaponRecoil = function() end
+            end)
+            pcall(function()
+                local InventoryController = require(ReplicatedStorage.Controllers.InventoryController)
+                if InventoryController and InventoryController.ShootWeapon then
+                    local Original = InventoryController.ShootWeapon
+                    InventoryController.ShootWeapon = function(Self, Data)
+                        if Data and Data.Bullets then
+                            local Look = workspace.CurrentCamera.CFrame.LookVector
+                            for _, b in ipairs(Data.Bullets) do
+                                if b and b.Direction then b.Direction = Look end
+                            end
+                        end
+                        return Original(Self, Data)
+                    end
+                end
+            end)
+            print("[BS] No Recoil включён")
+        else
+            print("[BS] Перезайди, чтобы выключить")
+        end
+    end)
+    
+    -- ----------------------------------
+    -- Skin Changer
+    -- ----------------------------------
+    makeDivider(bsPage, "🎨 Skin Changer")
+    
+    makeButton(bsPage, "🎨 Skin Changer (NickHub)", function()
+        local ok, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Nickk-GG/BloxStrike-NickHub-New-Gen/refs/heads/main/sc.lua"))()
+        end)
+        if not ok then warn("[BS] Skin Changer error: " .. tostring(err)) end
+    end)
+    
+    -- ----------------------------------
+    -- Дополнительно
+    -- ----------------------------------
+    makeDivider(bsPage, "⚙️ Дополнительно")
+    
+    makeToggle(bsPage, "No Flash / No Smoke", false, function(state)
+        if state then
+            for _, v in pairs(Lighting:GetChildren()) do
+                if v:IsA("ColorCorrectionEffect") then
+                    v.Brightness = 0
+                end
+            end
+            print("[BS] No Flash / Smoke включён")
+        end
+    end)
+    
+    makeToggle(bsPage, "Night Sky", false, function(state)
+        if state then
+            Lighting.ClockTime = 0
+            Lighting.Brightness = 0
+        else
+            Lighting.ClockTime = 14
+            Lighting.Brightness = 2
+        end
+    end)
+    
+    makeButton(bsPage, "🔄 Переподключиться", function()
+        pcall(function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
+        end)
+    end)
 end
 
--- Автопроверка обновлений в фоне
-task.spawn(function()
-    local ok, latest = pcall(function()
-        return game:HttpGet(CONFIG.RepoURL .. "/version.txt")
-    end)
-    if ok and latest then
-        latest = latest:gsub("%s+", "")
-        if latest ~= CONFIG.Version then
-            print("[GB] ⚠️ Доступно обновление: v" .. latest)
-        end
-    end
-end)
+--=============================================================
+--  17. ХОТКЕЙ
+--=============================================================
+UIS.InputBegan:Connect(function(input, gpe)
+    if
